@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>diverge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sb: #1a1917;
+      --sb-hover: #2d2a27;
+      --sb-active: #3a3632;
+      --sb-text: #c8c5bf;
+      --sb-dim: #706d68;
+      --sb-border: #2a2724;
+      --bg: #ffffff;
+      --msg-hover: #f8f7f5;
+      --border: #e8e5e0;
+      --text: #1a1917;
+      --text2: #6b6760;
+      --quinn: #7c6af7;
+      --vera: #e8503a;
+      --ori: #2a9e8a;
+      --you: #5b6880;
+    }
+    html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; font-size: 15px; background: var(--sb); -webkit-font-smoothing: antialiased; }
+
+    /* ── MODAL ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .overlay.hidden { display: none; }
+    .modal-card { background: #fff; border-radius: 14px; padding: 36px 40px; width: 460px; max-width: 92vw; box-shadow: 0 24px 60px rgba(0,0,0,0.28); }
+    .modal-logo { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); margin-bottom: 6px; }
+    .modal-card p { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 24px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .field input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color .15s; }
+    .field input:focus { border-color: #999; }
+    .field input::placeholder { color: #c0bdb8; }
+    .field-hint { font-size: 12px; color: var(--text2); margin-top: 4px; display: block; }
+    .field-hint code { background: #f0ede8; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    .modal-note { background: #f5f3ef; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text2); line-height: 1.6; margin: 18px 0; }
+    .modal-note a { color: var(--vera); }
+    .modal-note code { background: #e8e4de; padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--text); }
+    .modal-btn { width: 100%; padding: 12px; background: var(--sb); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; margin-top: 4px; }
+    .modal-btn:hover { opacity: .85; }
+    .modal-error { font-size: 13px; color: var(--vera); margin-top: 8px; }
+
+    /* ── APP ── */
+    #app { display: flex; height: 100vh; }
+    #app.hidden { display: none; }
+
+    /* ── SIDEBAR ── */
+    #sidebar { width: 258px; flex-shrink: 0; background: var(--sb); display: flex; flex-direction: column; border-right: 1px solid var(--sb-border); }
+    #ws-header { padding: 13px 16px 11px; border-bottom: 1px solid var(--sb-border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .ws-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.3px; flex: 1; }
+    .ws-online { font-size: 11px; color: #5db075; white-space: nowrap; }
+    .gear-btn { background: none; border: none; cursor: pointer; color: var(--sb-dim); font-size: 15px; padding: 2px 4px; border-radius: 4px; transition: color .15s; line-height: 1; }
+    .gear-btn:hover { color: var(--sb-text); }
+
+    .sb-scroll { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
+    .sb-scroll::-webkit-scrollbar { width: 0; }
+    .sb-label { padding: 8px 16px 3px; font-size: 11px; font-weight: 600; color: var(--sb-dim); text-transform: uppercase; letter-spacing: .07em; }
+    .ch-item { padding: 5px 12px; display: flex; align-items: center; gap: 5px; color: var(--sb-text); font-size: 14px; cursor: pointer; border-radius: 5px; margin: 0 6px; transition: background .1s; }
+    .ch-item:hover { background: var(--sb-hover); }
+    .ch-item.active { background: var(--sb-active); color: #fff; font-weight: 500; }
+    .ch-hash { color: var(--sb-dim); font-size: 16px; line-height: 1; flex-shrink: 0; }
+    .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .new-ch { padding: 5px 12px; font-size: 14px; color: var(--sb-dim); cursor: pointer; border-radius: 5px; margin: 0 6px; transition: all .1s; }
+    .new-ch:hover { background: var(--sb-hover); color: var(--sb-text); }
+    .sb-divider { height: 1px; background: var(--sb-border); margin: 8px 14px; }
+    .member-row { padding: 4px 12px; display: flex; align-items: center; gap: 8px; color: var(--sb-text); font-size: 14px; }
+    .member-dot { font-size: 8px; flex-shrink: 0; }
+    .dot-q { color: var(--quinn); }
+    .dot-v { color: var(--vera); }
+    .dot-o { color: var(--ori); }
+    .dot-y { color: #5db075; }
+    .member-name { flex: 1; }
+    .member-tag { font-size: 11px; color: var(--sb-dim); }
+
+    /* ── MAIN ── */
+    #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); min-width: 0; }
+
+    /* Setup */
+    #setup { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; text-align: center; }
+    #setup.hidden { display: none; }
+    .setup-icon { width: 60px; height: 60px; background: var(--sb); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; }
+    .setup-title { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
+    .setup-sub { font-size: 14px; color: var(--text2); max-width: 440px; line-height: 1.75; margin-bottom: 30px; }
+    .setup-wrap { width: 100%; max-width: 520px; }
+    #prob-ta { width: 100%; min-height: 86px; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text); resize: none; outline: none; transition: border-color .15s; }
+    #prob-ta:focus { border-color: #aaa; }
+    #prob-ta::placeholder { color: #c0bdb8; }
+    #open-btn { margin-top: 10px; padding: 11px 24px; background: var(--sb); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    #open-btn:hover { opacity: .85; }
+    #open-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* Chat */
+    #chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    #chat.hidden { display: none; }
+
+    /* Channel header */
+    #ch-header { padding: 11px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    #ch-header-name { font-size: 15px; font-weight: 700; }
+    .h-sep { color: var(--border); }
+    #ch-header-desc { font-size: 13px; color: var(--text2); }
+    #settings-link { margin-left: auto; font-size: 12px; color: var(--text2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    #settings-link:hover { border-color: #aaa; color: var(--text); }
+
+    /* Messages */
+    #messages { flex: 1; overflow-y: auto; padding: 16px 0 4px; display: flex; flex-direction: column; }
+    #messages::-webkit-scrollbar { width: 7px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: #e0ddd8; border-radius: 4px; }
+
+    .msg-wrap { padding: 2px 20px; display: flex; gap: 10px; transition: background .1s; position: relative; }
+    .msg-wrap:hover { background: var(--msg-hover); }
+    .msg-wrap.first { padding-top: 8px; }
+
+    .av-col { width: 38px; flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 1px; }
+    .av-col svg { border-radius: 8px; overflow: visible; }
+    .av-col.spacer { justify-content: flex-end; align-items: center; }
+    .hover-time { font-size: 10px; color: var(--text2); opacity: 0; transition: opacity .1s; white-space: nowrap; line-height: 1; }
+    .msg-wrap:hover .hover-time { opacity: 1; }
+
+    .msg-body { flex: 1; min-width: 0; }
+    .msg-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 2px; }
+    .msg-name { font-size: 14px; font-weight: 700; }
+    .msg-name.q { color: var(--quinn); }
+    .msg-name.v { color: var(--vera); }
+    .msg-name.o { color: var(--ori); }
+    .msg-name.y { color: var(--you); }
+    .msg-badge { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+    .badge-q { background: #f0eeff; color: var(--quinn); }
+    .badge-v { background: #fef0ee; color: var(--vera); }
+    .badge-o { background: #eef7f5; color: var(--ori); }
+    .msg-time { font-size: 11px; color: var(--text2); }
+    .msg-text { font-size: 14px; line-height: 1.65; color: var(--text); word-break: break-word; }
+    .msg-text.you { color: #3e4a5c; }
+
+    /* Typing */
+    #typing { padding: 4px 20px 2px; display: flex; align-items: center; gap: 10px; min-height: 28px; }
+    #typing.hidden { display: none; }
+    #typing svg { border-radius: 6px; }
+    .t-dots { display: flex; gap: 4px; align-items: center; }
+    .t-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text2); animation: blink 1.3s infinite ease-in-out; }
+    .t-dot:nth-child(2) { animation-delay: .2s; }
+    .t-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,60%,100% { opacity: .2; transform: scale(.8); } 30% { opacity: 1; transform: scale(1); } }
+
+    /* Input */
+    #input-area { padding: 10px 20px 16px; flex-shrink: 0; }
+    #input-box { border: 1.5px solid var(--border); border-radius: 10px; background: #fff; transition: border-color .15s; }
+    #input-box:focus-within { border-color: #aaa; }
+    #msg-ta { width: 100%; padding: 10px 14px 8px; font-family: inherit; font-size: 14px; line-height: 1.55; color: var(--text); border: none; outline: none; resize: none; background: transparent; min-height: 44px; max-height: 150px; display: block; }
+    #msg-ta::placeholder { color: #c0bdb8; }
+    #input-foot { padding: 6px 12px 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+    .foot-hint { font-size: 12px; color: var(--text2); }
+    #send-btn { padding: 6px 16px; background: var(--sb); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    #send-btn:hover { opacity: .8; }
+    #send-btn:disabled { opacity: .3; cursor: not-allowed; }
+    #err-area { margin-top: 8px; }
+    .err-banner { font-size: 13px; color: var(--vera); background: #fef0ee; border: 1px solid #fad5ce; border-radius: 8px; padding: 10px 14px; line-height: 1.6; }
+    .err-banner code { background: #fad5ce; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- ── SVG AVATAR SYMBOLS ── -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- QUINN: purple, round glasses, thoughtful smile -->
+  <symbol id="av-quinn" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#7c6af7"/>
+    <!-- face -->
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <!-- hair: neat medium length -->
+    <path d="M8.5,22 C8.5,8.5 27.5,8.5 27.5,22 C26,12.5 10,12.5 8.5,22 Z" fill="#2b104e"/>
+    <!-- glasses left -->
+    <rect x="9.5" y="19.5" width="6.8" height="4.8" rx="1.6" fill="rgba(255,255,255,0.18)" stroke="#2b104e" stroke-width="1.3"/>
+    <!-- glasses right -->
+    <rect x="19.7" y="19.5" width="6.8" height="4.8" rx="1.6" fill="rgba(255,255,255,0.18)" stroke="#2b104e" stroke-width="1.3"/>
+    <!-- bridge -->
+    <line x1="16.3" y1="21.9" x2="19.7" y2="21.9" stroke="#2b104e" stroke-width="1.3"/>
+    <!-- pupils -->
+    <circle cx="12.9" cy="21.9" r="1.4" fill="#2b104e"/>
+    <circle cx="23.1" cy="21.9" r="1.4" fill="#2b104e"/>
+    <!-- mouth: slight smile -->
+    <path d="M15.5,26.5 Q18,28.5 20.5,26.5" fill="none" stroke="#c07050" stroke-width="1.15" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- VERA: coral-red, stern brows, direct expression -->
+  <symbol id="av-vera" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#e8503a"/>
+    <!-- face -->
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <!-- hair: short blunt cut -->
+    <path d="M8.5,22 C8.5,9.5 27.5,9.5 27.5,22 C27.5,14 8.5,14 8.5,22 Z" fill="#180500"/>
+    <!-- left stern brow: angles DOWN toward center -->
+    <line x1="10" y1="18" x2="15.5" y2="19.5" stroke="#180500" stroke-width="1.9" stroke-linecap="round"/>
+    <!-- right stern brow: angles DOWN toward center -->
+    <line x1="20.5" y1="19.5" x2="26" y2="18" stroke="#180500" stroke-width="1.9" stroke-linecap="round"/>
+    <!-- pupils -->
+    <circle cx="13.2" cy="22.5" r="1.55" fill="#180500"/>
+    <circle cx="22.8" cy="22.5" r="1.55" fill="#180500"/>
+    <!-- mouth: flat slight downturn -->
+    <path d="M15.5,26.5 Q18,25.5 20.5,26.5" fill="none" stroke="#c07050" stroke-width="1.15" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- ORI: teal, wavy hair, raised right brow, warm smile -->
+  <symbol id="av-ori" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#2a9e8a"/>
+    <!-- background sparkle dots -->
+    <circle cx="5.5" cy="7" r="1.6" fill="rgba(255,255,255,0.4)"/>
+    <circle cx="30" cy="5.5" r="1.1" fill="rgba(255,255,255,0.32)"/>
+    <circle cx="31.5" cy="28.5" r="1.3" fill="rgba(255,255,255,0.28)"/>
+    <circle cx="4" cy="27" r="0.9" fill="rgba(255,255,255,0.25)"/>
+    <!-- face -->
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <!-- hair: wavy, a bit loose -->
+    <path d="M8.5,22 C8.5,9 15,6.5 18,9 C21,6.5 27.5,9 27.5,22 C25,12 22.5,14.5 18,13 C13.5,14.5 11,12 8.5,22 Z" fill="#163322"/>
+    <!-- left brow: neutral -->
+    <line x1="11" y1="19" x2="15.8" y2="19" stroke="#180a00" stroke-width="1.45" stroke-linecap="round"/>
+    <!-- right brow: raised / curious -->
+    <line x1="20.2" y1="18" x2="25.5" y2="19.2" stroke="#180a00" stroke-width="1.45" stroke-linecap="round"/>
+    <!-- pupils -->
+    <circle cx="13.5" cy="22.2" r="1.5" fill="#180a00"/>
+    <circle cx="22.5" cy="22.2" r="1.5" fill="#180a00"/>
+    <!-- mouth: open warm smile -->
+    <path d="M14.5,26.5 Q18,29.5 21.5,26.5" fill="none" stroke="#c07050" stroke-width="1.2" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- YOU: slate, generic person silhouette -->
+  <symbol id="av-you" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#5b6880"/>
+    <circle cx="18" cy="14.5" r="7" fill="rgba(255,255,255,0.82)"/>
+    <path d="M3,37 C3,26.5 33,26.5 33,37 Z" fill="rgba(255,255,255,0.82)"/>
+  </symbol>
+
+</svg>
+
+<!-- ── SETTINGS MODAL ── -->
+<div id="settings-modal" class="overlay hidden">
+  <div class="modal-card">
+    <div class="modal-logo">diverge</div>
+    <p>Enter your Groq API key to get started. It's free, runs fast, and is saved only in your browser.</p>
+
+    <div class="field">
+      <label>Groq API Key</label>
+      <input id="s-key" type="password" placeholder="gsk_..." autocomplete="off"/>
+    </div>
+
+    <div class="modal-note">
+      No key yet? Get one free at <a href="https://console.groq.com" target="_blank">console.groq.com</a> →<br/>
+      Sign up → API Keys → Create key. Takes 30 seconds.
+    </div>
+
+    <button class="modal-btn" id="s-save">Enter workspace →</button>
+    <div class="modal-error" id="s-err"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div id="ws-header">
+      <span class="ws-name">diverge</span>
+      <span class="ws-online">● online</span>
+      <button class="gear-btn" id="gear-btn" title="Ollama settings">⚙</button>
+    </div>
+
+    <div class="sb-scroll">
+      <div class="sb-label">Problems</div>
+      <div id="ch-list"></div>
+      <div class="new-ch" id="new-ch-btn">+ New problem</div>
+
+      <div class="sb-divider"></div>
+      <div class="sb-label">Team</div>
+
+      <div class="member-row">
+        <span class="member-dot dot-q">●</span>
+        <svg width="22" height="22" style="border-radius:5px;flex-shrink:0"><use href="#av-quinn"/></svg>
+        <span class="member-name">Quinn</span>
+        <span class="member-tag">questions</span>
+      </div>
+      <div class="member-row">
+        <span class="member-dot dot-v">●</span>
+        <svg width="22" height="22" style="border-radius:5px;flex-shrink:0"><use href="#av-vera"/></svg>
+        <span class="member-name">Vera</span>
+        <span class="member-tag">challenges</span>
+      </div>
+      <div class="member-row">
+        <span class="member-dot dot-o">●</span>
+        <svg width="22" height="22" style="border-radius:5px;flex-shrink:0"><use href="#av-ori"/></svg>
+        <span class="member-name">Ori</span>
+        <span class="member-tag">reframes</span>
+      </div>
+
+      <div class="sb-divider"></div>
+
+      <div class="member-row">
+        <span class="member-dot dot-y">●</span>
+        <svg width="22" height="22" style="border-radius:5px;flex-shrink:0"><use href="#av-you"/></svg>
+        <span class="member-name">You</span>
+        <span class="member-tag">the thinker</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- Setup screen -->
+    <div id="setup">
+      <div class="setup-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+          <path d="M10 14 C10 10 22 10 22 14 C22 17 18 18 16 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <circle cx="16" cy="24" r="1.5" fill="white"/>
+        </svg>
+      </div>
+      <div class="setup-title">What are you wrestling with?</div>
+      <p class="setup-sub">Describe the problem. Your team will question you, challenge your assumptions, and flip the frame — but they'll never hand you answers. All ideas stay yours.</p>
+      <div class="setup-wrap">
+        <textarea id="prob-ta" placeholder="e.g. We're losing users in the first week after signup and I don't know why." rows="3"></textarea>
+        <br/>
+        <button id="open-btn" disabled>Open channel →</button>
+      </div>
+    </div>
+
+    <!-- Chat screen -->
+    <div id="chat" class="hidden">
+      <div id="ch-header">
+        <span id="ch-header-name">#channel</span>
+        <span class="h-sep">|</span>
+        <span id="ch-header-desc">Quinn · Vera · Ori</span>
+        <button id="settings-link">API key</button>
+      </div>
+
+      <div id="messages"></div>
+
+      <div id="typing" class="hidden">
+        <svg id="typing-av" width="28" height="28" style="border-radius:6px"><use id="typing-av-use" href="#av-quinn"/></svg>
+        <div class="t-dots">
+          <div class="t-dot"></div>
+          <div class="t-dot"></div>
+          <div class="t-dot"></div>
+        </div>
+      </div>
+
+      <div id="input-area">
+        <div id="input-box">
+          <textarea id="msg-ta" placeholder="Share a thought, a constraint, a half-baked idea…" rows="1"></textarea>
+          <div id="input-foot">
+            <span class="foot-hint">↵ send · Shift+↵ new line</span>
+            <button id="send-btn" disabled>Send</button>
+          </div>
+        </div>
+        <div id="err-area"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const SYSTEM = `You are three divergent thinking partners on a team called "diverge." When the user shares thoughts about their problem, one of you responds — whoever creates the most useful friction in that moment.
+
+THE TEAM:
+• Quinn — a calm, Socratic interrogator. Asks the one question the user hasn't asked themselves. Methodical and relentless, she finds the hidden assumption baked into how the problem was framed.
+• Vera — a sharp-tongued skeptic. Calls out weak logic, unsupported claims, and convenient assumptions. Direct and blunt — not cruel, but she doesn't soften friction. If something is flimsy, she noticed.
+• Ori — a lateral thinker who approaches from strange angles. Reframes through a completely different lens — zooms way out, flips it upside down, or borrows a frame from a totally unrelated domain. Often surprising.
+
+NON-NEGOTIABLE (all three, always):
+1. NEVER generate ideas, solutions, suggestions, or examples — zero exceptions
+2. NEVER answer the problem for the user, even partially
+3. Do NOT validate or encourage ideas — question everything
+4. 1–3 sentences MAX. Dense friction beats long friction.
+5. Be genuinely uncomfortable. The user should feel challenged, not supported.
+6. Rotate who speaks across a conversation — no single voice dominates.
+
+RESPONSE FORMAT:
+First line must be exactly one of: [Quinn] or [Vera] or [Ori]
+Then the message. Nothing else before or after.`;
+
+const CHARS = {
+  Quinn: { cls: 'q', badge: 'badge-q', role: 'Question', av: 'av-quinn' },
+  Vera:  { cls: 'v', badge: 'badge-v', role: 'Challenge', av: 'av-vera' },
+  Ori:   { cls: 'o', badge: 'badge-o', role: 'Reframe',  av: 'av-ori' },
+};
+
+// ── Storage ──
+let channels = [], activeId = null;
+
+function save() { localStorage.setItem('dv_channels', JSON.stringify(channels)); localStorage.setItem('dv_active', activeId ?? ''); }
+function load() {
+  try { channels = JSON.parse(localStorage.getItem('dv_channels') || '[]'); } catch { channels = []; }
+  activeId = localStorage.getItem('dv_active') || null;
+}
+function getKey()    { return localStorage.getItem('dv_key') || ''; }
+function isReady()   { return !!localStorage.getItem('dv_ready'); }
+function setReady()  { localStorage.setItem('dv_ready', '1'); }
+
+function activeCh() { return channels.find(c => c.id === activeId) || null; }
+function slugify(t) { return t.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').slice(0,38); }
+function ts() { return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+// ── Sidebar ──
+function renderSidebar() {
+  const list = document.getElementById('ch-list');
+  list.innerHTML = channels.map(ch => `
+    <div class="ch-item${ch.id===activeId?' active':''}" data-id="${ch.id}">
+      <span class="ch-hash">#</span>
+      <span class="ch-name">${esc(ch.slug)}</span>
+    </div>`).join('');
+  list.querySelectorAll('.ch-item').forEach(el =>
+    el.addEventListener('click', () => switchCh(el.dataset.id)));
+}
+
+// ── Messages ──
+function av(id, size) {
+  return `<svg width="${size}" height="${size}"><use href="#${id}"/></svg>`;
+}
+
+function renderAI(msg, grouped) {
+  const c = CHARS[msg.name];
+  const avCol = grouped
+    ? `<div class="av-col spacer"><span class="hover-time">${msg.time}</span></div>`
+    : `<div class="av-col">${av(c.av, 36)}</div>`;
+  const head = grouped ? '' : `
+    <div class="msg-head">
+      <span class="msg-name ${c.cls}">${msg.name}</span>
+      <span class="msg-badge ${c.badge}">${c.role}</span>
+      <span class="msg-time">${msg.time}</span>
+    </div>`;
+  return `<div class="msg-wrap${grouped?'':' first'}">${avCol}<div class="msg-body">${head}<div class="msg-text">${esc(msg.content)}</div></div></div>`;
+}
+
+function renderUser(msg, grouped) {
+  const avCol = grouped
+    ? `<div class="av-col spacer"><span class="hover-time">${msg.time}</span></div>`
+    : `<div class="av-col">${av('av-you', 36)}</div>`;
+  const head = grouped ? '' : `
+    <div class="msg-head">
+      <span class="msg-name y">You</span>
+      <span class="msg-time">${msg.time}</span>
+    </div>`;
+  return `<div class="msg-wrap${grouped?'':' first'}">${avCol}<div class="msg-body">${head}<div class="msg-text you">${esc(msg.content)}</div></div></div>`;
+}
+
+function renderAll(ch) {
+  const el = document.getElementById('messages');
+  if (!ch || !ch.messages.length) { el.innerHTML = ''; return; }
+  let html = '', last = null;
+  for (const m of ch.messages) {
+    const grouped = m.name === last;
+    html += m.name === 'You' ? renderUser(m, grouped) : renderAI(m, grouped);
+    last = m.name;
+  }
+  el.innerHTML = html;
+}
+
+function appendMsg(msg) {
+  const ch = activeCh();
+  if (!ch) return;
+  const last = ch.messages.length > 1 ? ch.messages[ch.messages.length - 2].name : null;
+  const grouped = msg.name === last;
+  const el = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.innerHTML = msg.name === 'You' ? renderUser(msg, grouped) : renderAI(msg, grouped);
+  el.appendChild(div.firstElementChild);
+  scrollBottom();
+}
+
+function scrollBottom() {
+  const el = document.getElementById('messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Switch channel ──
+function switchCh(id) {
+  activeId = id;
+  const ch = activeCh();
+  if (!ch) return;
+  save();
+  renderSidebar();
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('chat').classList.remove('hidden');
+  document.getElementById('ch-header-name').textContent = '#' + ch.slug;
+  renderAll(ch);
+  scrollBottom();
+  document.getElementById('msg-ta').focus();
+}
+
+// ── Groq API ──
+async function callAI(ch) {
+  const apiMsgs = [{ role: 'system', content: SYSTEM }];
+  apiMsgs.push({ role: 'user', content: `Problem I'm exploring: "${ch.problem}"\n\nI'm starting with no ideas. Begin.` });
+
+  for (const m of ch.messages) {
+    const role = m.name === 'You' ? 'user' : 'assistant';
+    const content = m.name === 'You' ? m.content : `[${m.name}]\n${m.content}`;
+    const last = apiMsgs[apiMsgs.length - 1];
+    if (last.role === role) { last.content += '\n' + content; }
+    else { apiMsgs.push({ role, content }); }
+  }
+
+  let res;
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getKey()}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: apiMsgs,
+        max_tokens: 300,
+        temperature: 0.85
+      })
+    });
+  } catch {
+    throw new Error(`Network error — check your connection`);
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.message || `Groq error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const raw = (data.choices?.[0]?.message?.content || '').trim();
+  const match = raw.match(/^\[(Quinn|Vera|Ori)\]\n?([\s\S]+)/);
+  return {
+    name: match ? match[1] : 'Quinn',
+    content: match ? match[2].trim() : raw
+  };
+}
+
+// ── Typing indicator ──
+function showTyping(name) {
+  const c = CHARS[name] || CHARS.Quinn;
+  document.getElementById('typing-av-use').setAttribute('href', '#' + c.av);
+  document.getElementById('typing').classList.remove('hidden');
+  scrollBottom();
+}
+function hideTyping() { document.getElementById('typing').classList.add('hidden'); }
+
+// ── Error ──
+function showErr(msg) {
+  document.getElementById('err-area').innerHTML = `<div class="err-banner">${msg}</div>`;
+}
+function clearErr() { document.getElementById('err-area').innerHTML = ''; }
+
+// ── Create channel ──
+async function createCh(problem) {
+  const id = uid();
+  const ch = { id, slug: slugify(problem) || 'new-problem', problem, messages: [] };
+  channels.unshift(ch);
+  activeId = id;
+  save();
+  renderSidebar();
+
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('chat').classList.remove('hidden');
+  document.getElementById('ch-header-name').textContent = '#' + ch.slug;
+  document.getElementById('messages').innerHTML = '';
+
+  showTyping('Quinn');
+  try {
+    const { name, content } = await callAI(ch);
+    hideTyping();
+    const msg = { name, content, time: ts() };
+    ch.messages.push(msg);
+    save();
+    appendMsg(msg);
+  } catch (e) {
+    hideTyping();
+    showErr(`<strong>Couldn't connect to Groq.</strong><br>${esc(e.message)}`);
+  }
+  document.getElementById('msg-ta').focus();
+}
+
+// ── Send message ──
+async function send() {
+  const ta = document.getElementById('msg-ta');
+  const text = ta.value.trim();
+  const ch = activeCh();
+  if (!text || !ch) return;
+  clearErr();
+  ta.value = '';
+  autosize(ta);
+  document.getElementById('send-btn').disabled = true;
+
+  const userMsg = { name: 'You', content: text, time: ts() };
+  ch.messages.push(userMsg);
+  save();
+  appendMsg(userMsg);
+
+  const candidates = Object.keys(CHARS);
+  showTyping(candidates[Math.floor(Math.random() * candidates.length)]);
+
+  try {
+    const { name, content } = await callAI(ch);
+    hideTyping();
+    const aiMsg = { name, content, time: ts() };
+    ch.messages.push(aiMsg);
+    save();
+    appendMsg(aiMsg);
+  } catch (e) {
+    hideTyping();
+    showErr(`<strong>${esc(e.message)}</strong><br>Check that Ollama is running: <code>ollama serve</code>`);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    ta.focus();
+  }
+}
+
+function autosize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+
+// ── Settings modal ──
+function openSettings() {
+  document.getElementById('s-key').value = getKey();
+  document.getElementById('s-err').textContent = '';
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() {
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+
+// ── Init ──
+function init() {
+  load();
+
+  if (isReady()) {
+    document.getElementById('app').classList.remove('hidden');
+    if (activeId && activeCh()) switchCh(activeId);
+  } else {
+    openSettings();
+  }
+
+  // Settings save
+  document.getElementById('s-save').addEventListener('click', () => {
+    const key = document.getElementById('s-key').value.trim();
+    if (!key.startsWith('gsk_')) { document.getElementById('s-err').textContent = 'That doesn\'t look like a Groq API key (should start with gsk_).'; return; }
+    localStorage.setItem('dv_key', key);
+    setReady();
+    closeSettings();
+    document.getElementById('app').classList.remove('hidden');
+  });
+
+  document.getElementById('gear-btn').addEventListener('click', openSettings);
+  document.getElementById('settings-link').addEventListener('click', openSettings);
+
+  // Problem input
+  const probTa = document.getElementById('prob-ta');
+  probTa.addEventListener('input', () => {
+    document.getElementById('open-btn').disabled = !probTa.value.trim();
+  });
+  document.getElementById('open-btn').addEventListener('click', async () => {
+    const p = probTa.value.trim();
+    if (!p) return;
+    document.getElementById('open-btn').disabled = true;
+    document.getElementById('open-btn').textContent = 'Opening…';
+    probTa.value = '';
+    await createCh(p);
+    document.getElementById('open-btn').textContent = 'Open channel →';
+  });
+
+  // New problem
+  document.getElementById('new-ch-btn').addEventListener('click', () => {
+    activeId = null;
+    document.getElementById('chat').classList.add('hidden');
+    document.getElementById('setup').classList.remove('hidden');
+    renderSidebar();
+    probTa.focus();
+  });
+
+  // Message input
+  const msgTa = document.getElementById('msg-ta');
+  msgTa.addEventListener('input', () => {
+    autosize(msgTa);
+    document.getElementById('send-btn').disabled = !msgTa.value.trim();
+  });
+  msgTa.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (msgTa.value.trim()) send(); }
+  });
+  document.getElementById('send-btn').addEventListener('click', send);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
