@@ -84,13 +84,23 @@
     #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); min-width: 0; }
 
     /* Setup */
-    #setup { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; text-align: center; }
+    #setup { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px; text-align: center; overflow-y: auto; }
     #setup.hidden { display: none; }
-    .setup-icon { width: 60px; height: 60px; background: var(--sb); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; }
-    .setup-title { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
-    .setup-sub { font-size: 14px; color: var(--text2); max-width: 440px; line-height: 1.75; margin-bottom: 30px; }
-    .setup-wrap { width: 100%; max-width: 520px; }
-    #prob-ta { width: 100%; min-height: 86px; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text); resize: none; outline: none; transition: border-color .15s; }
+    .setup-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); margin-bottom: 6px; }
+    .setup-tagline { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+    .team-cards { display: flex; gap: 14px; margin-bottom: 36px; flex-wrap: wrap; justify-content: center; }
+    .tc { background: #faf9f7; border: 1.5px solid var(--border); border-radius: 12px; padding: 20px 18px; width: 148px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .tc svg { border-radius: 10px; }
+    .tc-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .tc-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; padding: 2px 8px; border-radius: 20px; }
+    .tc-role-q { background: #f0eeff; color: var(--quinn); }
+    .tc-role-v { background: #fef0ee; color: var(--vera); }
+    .tc-role-o { background: #eef7f5; color: var(--ori); }
+    .tc-desc { font-size: 12px; color: var(--text2); line-height: 1.6; text-align: center; }
+    .setup-divider { width: 100%; max-width: 480px; height: 1px; background: var(--border); margin-bottom: 28px; }
+    .setup-prompt { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; margin-bottom: 12px; }
+    .setup-wrap { width: 100%; max-width: 500px; }
+    #prob-ta { width: 100%; min-height: 80px; padding: 13px 15px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text); resize: none; outline: none; transition: border-color .15s; }
     #prob-ta:focus { border-color: #aaa; }
     #prob-ta::placeholder { color: #c0bdb8; }
     #open-btn { margin-top: 10px; padding: 11px 24px; background: var(--sb); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
@@ -316,19 +326,37 @@
 
     <!-- Setup screen -->
     <div id="setup">
-      <div class="setup-icon">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="14" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-          <path d="M10 14 C10 10 22 10 22 14 C22 17 18 18 16 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
-          <circle cx="16" cy="24" r="1.5" fill="white"/>
-        </svg>
+      <div class="setup-logo">diverge</div>
+      <p class="setup-tagline">An ideation team that asks better questions — not one that hands you answers.</p>
+
+      <div class="team-cards">
+        <div class="tc">
+          <svg width="48" height="48"><use href="#av-quinn"/></svg>
+          <div class="tc-name">Quinn</div>
+          <div class="tc-role tc-role-q">Questioner</div>
+          <div class="tc-desc">Finds the assumption you didn't know you were making.</div>
+        </div>
+        <div class="tc">
+          <svg width="48" height="48"><use href="#av-vera"/></svg>
+          <div class="tc-name">Vera</div>
+          <div class="tc-role tc-role-v">Challenger</div>
+          <div class="tc-desc">Points out what's weak in your thinking. Directly.</div>
+        </div>
+        <div class="tc">
+          <svg width="48" height="48"><use href="#av-ori"/></svg>
+          <div class="tc-name">Ori</div>
+          <div class="tc-role tc-role-o">Reframer</div>
+          <div class="tc-desc">Turns the problem sideways. Sometimes upside down.</div>
+        </div>
       </div>
-      <div class="setup-title">What are you wrestling with?</div>
-      <p class="setup-sub">Describe the problem. Your team will question you, challenge your assumptions, and flip the frame — but they'll never hand you answers. All ideas stay yours.</p>
+
+      <div class="setup-divider"></div>
+
       <div class="setup-wrap">
+        <div class="setup-prompt">What are you trying to figure out?</div>
         <textarea id="prob-ta" placeholder="e.g. We're losing users in the first week after signup and I don't know why." rows="3"></textarea>
         <br/>
-        <button id="open-btn" disabled>Open channel →</button>
+        <button id="open-btn" disabled>Start thinking →</button>
       </div>
     </div>
 
@@ -368,24 +396,28 @@
 </div>
 
 <script>
-const SYSTEM = `You are three divergent thinking partners on a team called "diverge." When the user shares thoughts about their problem, one of you responds — whoever creates the most useful friction in that moment.
+const SYSTEM = `You are three thinking partners on a team called "diverge." Your job is to help the user develop and concretize their ideas — not by giving answers, but by asking the right question at the right moment.
 
 THE TEAM:
-• Quinn — a calm, Socratic interrogator. Asks the one question the user hasn't asked themselves. Methodical and relentless, she finds the hidden assumption baked into how the problem was framed.
-• Vera — a sharp-tongued skeptic. Calls out weak logic, unsupported claims, and convenient assumptions. Direct and blunt — not cruel, but she doesn't soften friction. If something is flimsy, she noticed.
-• Ori — a lateral thinker who approaches from strange angles. Reframes through a completely different lens — zooms way out, flips it upside down, or borrows a frame from a totally unrelated domain. Often surprising.
+• Quinn — calm and precise. Finds the assumption hidden inside how the problem was framed. Asks the one question the user hasn't thought to ask themselves.
+• Vera — direct and sharp. Calls out something specific that's weak, vague, or unsupported. Blunt but focused — never cruel.
+• Ori — a practical lateral thinker. Reframes the problem from a different angle. Grounded, not abstract.
 
-NON-NEGOTIABLE (all three, always):
-1. NEVER generate ideas, solutions, suggestions, or examples — zero exceptions
-2. NEVER answer the problem for the user, even partially
-3. Do NOT validate or encourage ideas — question everything
-4. 1–3 sentences MAX. Dense friction beats long friction.
-5. Be genuinely uncomfortable. The user should feel challenged, not supported.
-6. Rotate who speaks across a conversation — no single voice dominates.
+RESPONSE STRUCTURE (follow every time):
+1. One sentence summarizing what the user just said — concrete and grounding. Start with "So", "You're saying", "It sounds like", or similar.
+2. One focused question that helps them go deeper, get more specific, or see something they missed.
+
+RULES:
+- Total response: 2–4 sentences. Never more.
+- Questions must be grounded in the actual problem — practical, not philosophical
+- If the user says "stop", "no", "that's not helpful", or expresses frustration: acknowledge it in one short sentence, then ask one simple redirecting question about the problem. Never analyze their reaction.
+- Never generate ideas, solutions, or suggestions — ever
+- Never validate or compliment the user's ideas
+- Rotate who speaks across a conversation — no single voice dominates
 
 RESPONSE FORMAT:
-First line must be exactly one of: [Quinn] or [Vera] or [Ori]
-Then the message. Nothing else before or after.`;
+First line: exactly [Quinn] or [Vera] or [Ori]
+Then the response. Nothing else before or after.`;
 
 const CHARS = {
   Quinn: { cls: 'q', badge: 'badge-q', role: 'Question', av: 'av-quinn' },
@@ -406,7 +438,11 @@ function isReady()   { return !!localStorage.getItem('dv_ready'); }
 function setReady()  { localStorage.setItem('dv_ready', '1'); }
 
 function activeCh() { return channels.find(c => c.id === activeId) || null; }
-function slugify(t) { return t.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').slice(0,38); }
+function slugify(t) {
+  const stop = new Set(['i','a','an','the','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','my','our','its','we','they','it','this','that','how','what','why','when','where','who','which','not','no','so','very','just','about','do','does','did','want','need','make','like','know','think','get','have','has','had','will','would','could','should','can','may','might','dont','doesnt','wont','im','its','dont','cant','also','really','too','some','all','more','most','any','into','than','each','use','try','see','say','go','come','find','tell','feel','keep','let','run','give','take','show','help','work','way','time','good','new','first','last','long','great','little','own','right','big','high','small','large','next','early','old','young','public','private','real','best','free','sure','every','much','both','through','because','if','then','else','after','before','while','now','still','back','even','here','there','out','up','off','down','over','under','same','different']);
+  const words = t.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(w => w.length > 2 && !stop.has(w));
+  return words.slice(0, 3).join('-') || 'new-problem';
+}
 function ts() { return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
