@@ -547,13 +547,23 @@ async function callAI(ch) {
   const apiMsgs = [{ role: 'system', content: SYSTEM }];
   apiMsgs.push({ role: 'user', content: `Problem I'm exploring: "${ch.problem}"\n\nI'm starting with no ideas. Begin.` });
 
+  let lastSpeaker = null;
   for (const m of ch.messages) {
     const role = m.name === 'You' ? 'user' : 'assistant';
     const content = m.name === 'You' ? m.content : `[${m.name}]\n${m.content}`;
     const last = apiMsgs[apiMsgs.length - 1];
     if (last.role === role) { last.content += '\n' + content; }
     else { apiMsgs.push({ role, content }); }
+    if (m.name !== 'You') lastSpeaker = m.name;
   }
+
+  // Tell the model who last spoke so it doesn't just rotate
+  const lastMsg = apiMsgs[apiMsgs.length - 1];
+  const speakerNote = lastSpeaker
+    ? `\n\n[Internal note: ${lastSpeaker} just responded. Pick whoever is genuinely most useful given what was said above — not based on turn order.]`
+    : `\n\n[Internal note: This is the first response. Pick whoever fits best.]`;
+  if (lastMsg.role === 'user') { lastMsg.content += speakerNote; }
+  else { apiMsgs.push({ role: 'user', content: speakerNote }); }
 
   let res;
   try {
