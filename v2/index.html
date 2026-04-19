@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>diverge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sb: #1a1917; --sb-hover: #2d2a27; --sb-active: #3a3632;
+      --sb-text: #c8c5bf; --sb-dim: #706d68; --sb-border: #2a2724;
+      --bg: #ffffff; --msg-hover: #f9f8f6; --border: #e8e5e0;
+      --text: #1a1917; --text2: #6b6760;
+      --quinn: #7c6af7; --vera: #e8503a; --ori: #2a9e8a; --you: #5b6880;
+      --board-bg: #f5f3ee;
+    }
+    html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; font-size: 15px; background: var(--sb); -webkit-font-smoothing: antialiased; }
+
+    /* ── OVERLAY / MODAL ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .overlay.hidden { display: none; }
+    .modal-card { background: #fff; border-radius: 14px; padding: 36px 40px; width: 460px; max-width: 92vw; box-shadow: 0 24px 60px rgba(0,0,0,0.28); }
+    .modal-logo { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 6px; }
+    .modal-card p { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 22px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .07em; }
+    .field input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color .15s; }
+    .field input:focus { border-color: #999; }
+    .field input::placeholder { color: #c0bdb8; }
+    .modal-note { background: #f5f3ef; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text2); line-height: 1.65; margin: 16px 0; }
+    .modal-note a { color: var(--vera); }
+    .modal-note code { background: #e8e4de; padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--text); }
+    .modal-btn { width: 100%; padding: 12px; background: var(--sb); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; margin-top: 4px; }
+    .modal-btn:hover { opacity: .85; }
+    .modal-error { font-size: 13px; color: var(--vera); margin-top: 8px; }
+
+    /* ── APP SHELL ── */
+    #app { display: flex; height: 100vh; }
+    #app.hidden { display: none; }
+
+    /* ── SIDEBAR ── */
+    #sidebar { width: 220px; flex-shrink: 0; background: var(--sb); display: flex; flex-direction: column; border-right: 1px solid var(--sb-border); }
+    #ws-header { padding: 13px 14px 11px; border-bottom: 1px solid var(--sb-border); display: flex; align-items: center; gap: 8px; }
+    .ws-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; flex: 1; }
+    .ws-badge { font-size: 10px; font-weight: 600; background: var(--vera); color: #fff; padding: 2px 6px; border-radius: 10px; }
+    .ws-online { font-size: 11px; color: #5db075; }
+    .gear-btn { background: none; border: none; cursor: pointer; color: var(--sb-dim); font-size: 15px; padding: 2px; border-radius: 4px; transition: color .15s; line-height: 1; }
+    .gear-btn:hover { color: var(--sb-text); }
+    .sb-scroll { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
+    .sb-scroll::-webkit-scrollbar { width: 0; }
+    .sb-label { padding: 8px 14px 3px; font-size: 11px; font-weight: 600; color: var(--sb-dim); text-transform: uppercase; letter-spacing: .07em; }
+    .ch-item { padding: 5px 10px; display: flex; align-items: center; gap: 5px; color: var(--sb-text); font-size: 13px; cursor: pointer; border-radius: 5px; margin: 0 5px; transition: background .1s; }
+    .ch-item:hover { background: var(--sb-hover); }
+    .ch-item.active { background: var(--sb-active); color: #fff; font-weight: 500; }
+    .ch-hash { color: var(--sb-dim); font-size: 14px; flex-shrink: 0; }
+    .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .new-ch { padding: 5px 10px; font-size: 13px; color: var(--sb-dim); cursor: pointer; border-radius: 5px; margin: 0 5px; transition: all .1s; }
+    .new-ch:hover { background: var(--sb-hover); color: var(--sb-text); }
+    .sb-div { height: 1px; background: var(--sb-border); margin: 8px 12px; }
+    .member-row { padding: 4px 10px; display: flex; align-items: center; gap: 7px; color: var(--sb-text); font-size: 13px; }
+    .member-dot { font-size: 8px; flex-shrink: 0; }
+    .dot-q { color: var(--quinn); } .dot-v { color: var(--vera); } .dot-o { color: var(--ori); } .dot-y { color: #5db075; }
+    .member-name { flex: 1; }
+    .member-tag { font-size: 11px; color: var(--sb-dim); }
+
+    /* ── MAIN ── */
+    #main { flex: 1; display: flex; min-width: 0; }
+
+    /* ── CHAT AREA ── */
+    #chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); min-width: 0; }
+
+    /* Setup */
+    #setup { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 28px; text-align: center; overflow-y: auto; }
+    #setup.hidden { display: none; }
+    .setup-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); margin-bottom: 4px; }
+    .setup-v { font-size: 11px; font-weight: 600; color: var(--vera); background: #fef0ee; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 6px; }
+    .setup-tagline { font-size: 14px; color: var(--text2); margin-bottom: 28px; max-width: 400px; line-height: 1.6; }
+    .team-cards { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; justify-content: center; }
+    .tc { background: #faf9f7; border: 1.5px solid var(--border); border-radius: 12px; padding: 18px 14px; width: 138px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+    .tc svg { border-radius: 10px; }
+    .tc-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .tc-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; padding: 2px 8px; border-radius: 20px; }
+    .tc-role-q { background: #f0eeff; color: var(--quinn); } .tc-role-v { background: #fef0ee; color: var(--vera); } .tc-role-o { background: #eef7f5; color: var(--ori); }
+    .tc-desc { font-size: 11px; color: var(--text2); line-height: 1.55; text-align: center; }
+    .setup-div { width: 100%; max-width: 460px; height: 1px; background: var(--border); margin-bottom: 26px; }
+    .setup-prompt { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; margin-bottom: 12px; }
+    .setup-wrap { width: 100%; max-width: 480px; }
+    #prob-ta { width: 100%; min-height: 76px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text); resize: none; outline: none; transition: border-color .15s; }
+    #prob-ta:focus { border-color: #aaa; }
+    #prob-ta::placeholder { color: #c0bdb8; }
+    #open-btn { margin-top: 10px; padding: 10px 22px; background: var(--sb); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    #open-btn:hover { opacity: .85; }
+    #open-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* Chat screen */
+    #chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    #chat.hidden { display: none; }
+
+    /* Channel header */
+    #ch-header { padding: 10px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    #ch-name-el { font-size: 14px; font-weight: 700; color: var(--text); }
+    .h-sep { color: var(--border); font-size: 16px; }
+    .member-toggles { display: flex; gap: 5px; }
+    .mtoggle { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; transition: all .15s; border: 1.5px solid transparent; }
+    .mtoggle svg { border-radius: 3px; }
+    .mtoggle.on-q  { background: #f0eeff; border-color: var(--quinn); color: var(--quinn); }
+    .mtoggle.on-v  { background: #fef0ee; border-color: var(--vera);  color: var(--vera);  }
+    .mtoggle.on-o  { background: #eef7f5; border-color: var(--ori);   color: var(--ori);   }
+    .mtoggle.off   { background: #f0ede8; border-color: #ddd; color: #bbb; }
+    .mtoggle.off svg { opacity: .4; }
+    .board-toggle-btn { margin-left: auto; font-size: 12px; color: var(--text2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .board-toggle-btn:hover { border-color: #aaa; color: var(--text); }
+    #settings-link { font-size: 12px; color: var(--text2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    #settings-link:hover { border-color: #aaa; color: var(--text); }
+
+    /* Messages */
+    #messages { flex: 1; overflow-y: auto; padding: 12px 0 4px; display: flex; flex-direction: column; }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-thumb { background: #e0ddd8; border-radius: 3px; }
+    .msg-wrap { padding: 2px 18px; display: flex; gap: 10px; transition: background .1s; position: relative; }
+    .msg-wrap:hover { background: var(--msg-hover); }
+    .msg-wrap.first { padding-top: 8px; }
+    .av-col { width: 36px; flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 2px; }
+    .av-col svg { border-radius: 7px; }
+    .av-col.spacer { justify-content: flex-end; align-items: center; }
+    .hover-time { font-size: 10px; color: var(--text2); opacity: 0; transition: opacity .1s; white-space: nowrap; line-height: 1; }
+    .msg-wrap:hover .hover-time { opacity: 1; }
+    .msg-body { flex: 1; min-width: 0; }
+    .msg-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+    .msg-name { font-size: 14px; font-weight: 700; }
+    .msg-name.q { color: var(--quinn); } .msg-name.v { color: var(--vera); } .msg-name.o { color: var(--ori); } .msg-name.y { color: var(--you); }
+    .msg-badge { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+    .badge-q { background: #f0eeff; color: var(--quinn); } .badge-v { background: #fef0ee; color: var(--vera); } .badge-o { background: #eef7f5; color: var(--ori); }
+    .msg-time { font-size: 11px; color: var(--text2); }
+    .msg-text { font-size: 14px; line-height: 1.65; color: var(--text); word-break: break-word; }
+    .msg-text.you { color: #3e4a5c; }
+    /* Pin button */
+    .pin-btn { position: absolute; top: 6px; right: 10px; opacity: 0; transition: opacity .12s; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 500; color: var(--text2); cursor: pointer; font-family: inherit; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+    .pin-btn:hover { background: #faf9f7; color: var(--text); border-color: #ccc; }
+    .msg-wrap:hover .pin-btn { opacity: 1; }
+    .pin-btn.saved { color: #e8a020; border-color: #f0c060; background: #fffbf0; }
+
+    /* Typing */
+    #typing { padding: 4px 18px 2px; display: flex; align-items: center; gap: 8px; min-height: 26px; }
+    #typing.hidden { display: none; }
+    #typing svg { border-radius: 6px; }
+    .t-dots { display: flex; gap: 4px; }
+    .t-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text2); animation: blink 1.3s infinite ease-in-out; }
+    .t-dot:nth-child(2) { animation-delay: .2s; } .t-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,60%,100% { opacity:.2; transform:scale(.8); } 30% { opacity:1; transform:scale(1); } }
+
+    /* Input */
+    #input-area { padding: 10px 18px 16px; flex-shrink: 0; }
+    #input-box { border: 1.5px solid var(--border); border-radius: 10px; background: #fff; transition: border-color .15s; }
+    #input-box:focus-within { border-color: #aaa; }
+    #msg-ta { width: 100%; padding: 10px 13px 8px; font-family: inherit; font-size: 14px; line-height: 1.55; color: var(--text); border: none; outline: none; resize: none; background: transparent; min-height: 44px; max-height: 140px; display: block; }
+    #msg-ta::placeholder { color: #c0bdb8; }
+    #input-foot { padding: 5px 11px 7px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+    .foot-hint { font-size: 11px; color: var(--text2); }
+    #send-btn { padding: 5px 14px; background: var(--sb); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    #send-btn:hover { opacity: .8; }
+    #send-btn:disabled { opacity: .3; cursor: not-allowed; }
+    #err-area { margin-top: 7px; }
+    .err-banner { font-size: 13px; color: var(--vera); background: #fef0ee; border: 1px solid #fad5ce; border-radius: 7px; padding: 9px 13px; line-height: 1.6; }
+    .err-banner code { background: #fad5ce; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+    /* ── IDEA BOARD ── */
+    #idea-board { width: 292px; flex-shrink: 0; background: var(--board-bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; transition: width .22s ease; overflow: hidden; }
+    #idea-board.collapsed { width: 0; border-left: none; }
+    #board-header { padding: 12px 14px 10px; border-bottom: 1px solid #e2ddd6; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .board-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+    .board-count { font-size: 11px; color: var(--text2); }
+    #add-idea-btn { padding: 4px 10px; background: var(--sb); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    #add-idea-btn:hover { opacity: .8; }
+    #ideas-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; display: flex; flex-direction: column; gap: 10px; }
+    #ideas-list::-webkit-scrollbar { width: 5px; }
+    #ideas-list::-webkit-scrollbar-thumb { background: #d8d4ce; border-radius: 3px; }
+    .board-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; text-align: center; color: var(--text2); }
+    .board-empty-icon { font-size: 28px; margin-bottom: 10px; }
+    .board-empty p { font-size: 13px; line-height: 1.6; }
+    /* Idea cards */
+    .idea-card { border-radius: 6px; padding: 11px 12px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.09), 0 0 0 1px rgba(0,0,0,.04); flex-shrink: 0; }
+    .idea-card:nth-child(odd) { transform: rotate(-0.4deg); }
+    .idea-card:nth-child(even) { transform: rotate(0.5deg); }
+    .idea-text { font-size: 13px; line-height: 1.6; color: #2a2520; word-break: break-word; padding-right: 20px; }
+    .idea-meta { font-size: 10px; color: rgba(0,0,0,.35); margin-top: 7px; }
+    .idea-del { position: absolute; top: 7px; right: 8px; background: none; border: none; cursor: pointer; font-size: 14px; color: rgba(0,0,0,.25); line-height: 1; padding: 2px; border-radius: 3px; transition: color .1s; }
+    .idea-del:hover { color: rgba(0,0,0,.55); }
+    /* Idea add form */
+    #idea-add-wrap { padding: 10px; border-top: 1px solid #e2ddd6; flex-shrink: 0; display: none; }
+    #idea-add-wrap.visible { display: block; }
+    #idea-ta { width: 100%; min-height: 70px; padding: 9px 11px; border: 1.5px solid #d8d4ce; border-radius: 8px; font-family: inherit; font-size: 13px; line-height: 1.5; color: var(--text); resize: none; outline: none; background: #fff; transition: border-color .15s; }
+    #idea-ta:focus { border-color: #aaa; }
+    .idea-add-row { display: flex; gap: 6px; margin-top: 7px; }
+    .idea-save-btn { flex: 1; padding: 6px; background: var(--sb); color: #fff; border: none; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .idea-cancel-btn { padding: 6px 10px; background: none; border: 1px solid #d8d4ce; border-radius: 6px; font-family: inherit; font-size: 12px; color: var(--text2); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<!-- ── SVG AVATARS ── -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="av-quinn" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#7c6af7"/>
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <path d="M8.5,22 C8.5,8.5 27.5,8.5 27.5,22 C26,12.5 10,12.5 8.5,22 Z" fill="#2b104e"/>
+    <rect x="9.5" y="19.5" width="6.8" height="4.8" rx="1.6" fill="rgba(255,255,255,0.18)" stroke="#2b104e" stroke-width="1.3"/>
+    <rect x="19.7" y="19.5" width="6.8" height="4.8" rx="1.6" fill="rgba(255,255,255,0.18)" stroke="#2b104e" stroke-width="1.3"/>
+    <line x1="16.3" y1="21.9" x2="19.7" y2="21.9" stroke="#2b104e" stroke-width="1.3"/>
+    <circle cx="12.9" cy="21.9" r="1.4" fill="#2b104e"/>
+    <circle cx="23.1" cy="21.9" r="1.4" fill="#2b104e"/>
+    <path d="M15.5,26.5 Q18,28.5 20.5,26.5" fill="none" stroke="#c07050" stroke-width="1.15" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="av-vera" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#e8503a"/>
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <path d="M8.5,22 C8.5,9.5 27.5,9.5 27.5,22 C27.5,14 8.5,14 8.5,22 Z" fill="#180500"/>
+    <line x1="10" y1="18" x2="15.5" y2="19.5" stroke="#180500" stroke-width="1.9" stroke-linecap="round"/>
+    <line x1="20.5" y1="19.5" x2="26" y2="18" stroke="#180500" stroke-width="1.9" stroke-linecap="round"/>
+    <circle cx="13.2" cy="22.5" r="1.55" fill="#180500"/>
+    <circle cx="22.8" cy="22.5" r="1.55" fill="#180500"/>
+    <path d="M15.5,26.5 Q18,25.5 20.5,26.5" fill="none" stroke="#c07050" stroke-width="1.15" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="av-ori" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#2a9e8a"/>
+    <circle cx="5.5" cy="7" r="1.6" fill="rgba(255,255,255,0.4)"/>
+    <circle cx="30" cy="5.5" r="1.1" fill="rgba(255,255,255,0.32)"/>
+    <circle cx="31.5" cy="28.5" r="1.3" fill="rgba(255,255,255,0.28)"/>
+    <ellipse cx="18" cy="22" rx="9.5" ry="10" fill="#f2c4a0"/>
+    <path d="M8.5,22 C8.5,9 15,6.5 18,9 C21,6.5 27.5,9 27.5,22 C25,12 22.5,14.5 18,13 C13.5,14.5 11,12 8.5,22 Z" fill="#163322"/>
+    <line x1="11" y1="19" x2="15.8" y2="19" stroke="#180a00" stroke-width="1.45" stroke-linecap="round"/>
+    <line x1="20.2" y1="18" x2="25.5" y2="19.2" stroke="#180a00" stroke-width="1.45" stroke-linecap="round"/>
+    <circle cx="13.5" cy="22.2" r="1.5" fill="#180a00"/>
+    <circle cx="22.5" cy="22.2" r="1.5" fill="#180a00"/>
+    <path d="M14.5,26.5 Q18,29.5 21.5,26.5" fill="none" stroke="#c07050" stroke-width="1.2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="av-you" viewBox="0 0 36 36">
+    <rect width="36" height="36" rx="9" fill="#5b6880"/>
+    <circle cx="18" cy="14.5" r="7" fill="rgba(255,255,255,0.82)"/>
+    <path d="M3,37 C3,26.5 33,26.5 33,37 Z" fill="rgba(255,255,255,0.82)"/>
+  </symbol>
+</svg>
+
+<!-- ── SETTINGS MODAL ── -->
+<div id="settings-modal" class="overlay hidden">
+  <div class="modal-card">
+    <div class="modal-logo">diverge</div>
+    <p>Enter your Groq API key to get started. Free, fast, and saved only in your browser.</p>
+    <div class="field">
+      <label>Groq API Key</label>
+      <input id="s-key" type="password" placeholder="gsk_..." autocomplete="off"/>
+    </div>
+    <div class="modal-note">
+      No key yet? Get one free at <a href="https://console.groq.com" target="_blank">console.groq.com</a><br/>
+      Sign up → API Keys → Create key.
+    </div>
+    <button class="modal-btn" id="s-save">Enter workspace →</button>
+    <div class="modal-error" id="s-err"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div id="ws-header">
+      <span class="ws-name">diverge</span>
+      <span class="ws-badge">2.0</span>
+      <span class="ws-online">●</span>
+      <button class="gear-btn" id="gear-btn">⚙</button>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-label">Problems</div>
+      <div id="ch-list"></div>
+      <div class="new-ch" id="new-ch-btn">+ New problem</div>
+      <div class="sb-div"></div>
+      <div class="sb-label">Team</div>
+      <div class="member-row"><span class="member-dot dot-q">●</span><svg width="20" height="20" style="border-radius:4px;flex-shrink:0"><use href="#av-quinn"/></svg><span class="member-name">Quinn</span><span class="member-tag">explores</span></div>
+      <div class="member-row"><span class="member-dot dot-v">●</span><svg width="20" height="20" style="border-radius:4px;flex-shrink:0"><use href="#av-vera"/></svg><span class="member-name">Vera</span><span class="member-tag">challenges</span></div>
+      <div class="member-row"><span class="member-dot dot-o">●</span><svg width="20" height="20" style="border-radius:4px;flex-shrink:0"><use href="#av-ori"/></svg><span class="member-name">Ori</span><span class="member-tag">reframes</span></div>
+      <div class="sb-div"></div>
+      <div class="member-row"><span class="member-dot dot-y">●</span><svg width="20" height="20" style="border-radius:4px;flex-shrink:0"><use href="#av-you"/></svg><span class="member-name">You</span><span class="member-tag">the thinker</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- CHAT AREA -->
+    <div id="chat-area">
+
+      <!-- SETUP -->
+      <div id="setup">
+        <div class="setup-logo">diverge</div>
+        <div class="setup-v">2.0</div>
+        <p class="setup-tagline">Develop ideas with a team that builds on your thinking, challenges it, and reframes it — then save what's worth keeping.</p>
+        <div class="team-cards">
+          <div class="tc"><svg width="44" height="44"><use href="#av-quinn"/></svg><div class="tc-name">Quinn</div><div class="tc-role tc-role-q">Explorer</div><div class="tc-desc">Deepens what you're already thinking.</div></div>
+          <div class="tc"><svg width="44" height="44"><use href="#av-vera"/></svg><div class="tc-name">Vera</div><div class="tc-role tc-role-v">Challenger</div><div class="tc-desc">Points out what's weak. Directly.</div></div>
+          <div class="tc"><svg width="44" height="44"><use href="#av-ori"/></svg><div class="tc-name">Ori</div><div class="tc-role tc-role-o">Reframer</div><div class="tc-desc">Brings in angles you wouldn't have found.</div></div>
+        </div>
+        <div class="setup-div"></div>
+        <div class="setup-wrap">
+          <div class="setup-prompt">What are you working on?</div>
+          <textarea id="prob-ta" placeholder="e.g. We want to redesign our onboarding but don't know where to start." rows="3"></textarea>
+          <br/>
+          <button id="open-btn" disabled>Start thinking →</button>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div id="chat" class="hidden">
+        <div id="ch-header">
+          <span id="ch-name-el">#channel</span>
+          <span class="h-sep">|</span>
+          <div class="member-toggles" id="member-toggles"></div>
+          <button class="board-toggle-btn" id="board-toggle-btn">💡 Ideas</button>
+          <button id="settings-link">API key</button>
+        </div>
+        <div id="messages"></div>
+        <div id="typing" class="hidden">
+          <svg id="typing-av" width="26" height="26" style="border-radius:6px"><use id="typing-av-use" href="#av-quinn"/></svg>
+          <div class="t-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div>
+        </div>
+        <div id="input-area">
+          <div id="input-box">
+            <textarea id="msg-ta" placeholder="Share a thought, an idea, a direction…" rows="1"></textarea>
+            <div id="input-foot">
+              <span class="foot-hint">↵ send · Shift+↵ new line</span>
+              <button id="send-btn" disabled>Send</button>
+            </div>
+          </div>
+          <div id="err-area"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IDEA BOARD -->
+    <div id="idea-board" class="collapsed">
+      <div id="board-header">
+        <span class="board-title">💡 Ideas</span>
+        <span class="board-count" id="board-count">0 saved</span>
+        <button id="add-idea-btn">+ Add</button>
+      </div>
+      <div id="ideas-list"></div>
+      <div id="idea-add-wrap">
+        <textarea id="idea-ta" placeholder="Type an idea…" rows="3"></textarea>
+        <div class="idea-add-row">
+          <button class="idea-save-btn" id="idea-save-btn">Save idea</button>
+          <button class="idea-cancel-btn" id="idea-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── SYSTEM PROMPT ──
+const SYSTEM_TEMPLATE = `You are three thinking partners on a team called "diverge." Your goal is to help the user develop, expand, and sharpen their ideas — not by giving them solutions, but by being a genuine creative collaborator.
+
+THE SHIFT: Don't just interrogate. Be a real thinking partner. Build on what the user says. Explore angles they haven't considered. Occasionally challenge or reframe. Help them generate and develop their own ideas — not generate ideas for them.
+
+THE TEAM:
+Quinn — thoughtful, exploratory, unhurried. She picks up a thread and pulls on it gently. Helps the user go deeper into what they're already thinking. Sometimes she asks a question; sometimes she just lights up an angle they touched on but didn't fully see.
+Voice: calm, curious, precise. Example: "There's something in what you said about X — it suggests the real question might be Y." / "What would change if that assumption turned out to be wrong?"
+
+Vera — sharp, direct, impatient with vagueness. She identifies what's missing, what's underdeveloped, or what's being avoided. Stress-tests ideas so they get stronger. Not unkind — just unsparing.
+Voice: blunt, confident, dry. Example: "The gap here is who actually owns this decision." / "You've described the symptom. What's underneath it?" / "That constraint you mentioned — is it real, or assumed?"
+
+Ori — lateral, energetic, a bit unpredictable. Brings analogies from different domains, unexpected reframes, or connections between things the user said earlier. Sometimes surprising in a way that opens things up.
+Voice: playful, curious, associative. Example: "This is structurally similar to how [X] works — does that suggest anything?" / "What if the problem is actually the opposite of what you think it is?" / "There's a version of this where you don't solve for retention at all."
+
+HOW TO RESPOND:
+- Be conversational, not formulaic. Sometimes a short observation. Sometimes you build on an idea. Sometimes a question. Sometimes a reframe.
+- 2–4 sentences. No preamble or summaries.
+- Don't pepper the user with multiple questions. One at most.
+- If the user seems stuck, offer a new angle rather than asking another question.
+- If they say "stop", "no", or express frustration: one sentence acknowledging it, redirect to the idea simply.
+- Never give a list of ideas or solutions. Never solve it for them.
+- When something concrete and specific emerges in the conversation, acknowledge it naturally — the user can save it to their idea board.
+
+ACTIVE MEMBERS: {ACTIVE_MEMBERS}
+
+RESPONSE FORMAT:
+First line: exactly [Quinn] or [Vera] or [Ori] — only from active members.
+Then the message. Nothing else.`;
+
+const CHARS = {
+  Quinn: { cls:'q', badge:'badge-q', role:'Explorer',   av:'av-quinn', toggleCls:'on-q' },
+  Vera:  { cls:'v', badge:'badge-v', role:'Challenger', av:'av-vera',  toggleCls:'on-v' },
+  Ori:   { cls:'o', badge:'badge-o', role:'Reframer',   av:'av-ori',   toggleCls:'on-o' },
+};
+const ALL_MEMBERS = ['Quinn','Vera','Ori'];
+const IDEA_COLORS = ['#FFF3B0','#FFD6E0','#C7F2A4','#BDE0FE','#E8D5F7','#FFDDB0'];
+
+// ── STATE ──
+let channels = [], activeId = null;
+let boardOpen = false;
+let colorIdx = 0;
+
+function save() { localStorage.setItem('dv2_ch', JSON.stringify(channels)); localStorage.setItem('dv2_active', activeId ?? ''); localStorage.setItem('dv2_board', boardOpen ? '1' : ''); }
+function load() {
+  try { channels = JSON.parse(localStorage.getItem('dv2_ch') || '[]'); } catch { channels = []; }
+  activeId = localStorage.getItem('dv2_active') || null;
+  boardOpen = !!localStorage.getItem('dv2_board');
+}
+function getKey()   { return localStorage.getItem('dv_key') || ''; }  // shared with v1
+function isReady()  { return !!localStorage.getItem('dv_ready'); }
+function setReady() { localStorage.setItem('dv_ready','1'); }
+function activeCh() { return channels.find(c => c.id === activeId) || null; }
+
+function slugify(t) {
+  const stop = new Set(['i','a','an','the','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','my','our','its','we','they','it','this','that','how','what','why','when','where','who','which','not','no','so','very','just','about','do','does','did','want','need','make','like','know','think','get','have','has','had','will','would','could','should','can','may','might','also','really','too','some','all','more','most','any','into','than','each','use','try','see','say','go','come','find','tell','feel','keep','let','run','give','take','show','help','work','way','time','good','new','first','last','long','great','little','own','right','big','high','small','large','next','early','old','young']);
+  const words = t.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(w => w.length > 2 && !stop.has(w));
+  return words.slice(0,3).join('-') || 'new-problem';
+}
+function ts() { return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function nextColor() { const c = IDEA_COLORS[colorIdx % IDEA_COLORS.length]; colorIdx++; return c; }
+
+// ── SIDEBAR ──
+function renderSidebar() {
+  const list = document.getElementById('ch-list');
+  list.innerHTML = channels.map(ch => `
+    <div class="ch-item${ch.id===activeId?' active':''}" data-id="${ch.id}">
+      <span class="ch-hash">#</span>
+      <span class="ch-name">${esc(ch.slug)}</span>
+    </div>`).join('');
+  list.querySelectorAll('.ch-item').forEach(el => el.addEventListener('click', () => switchCh(el.dataset.id)));
+}
+
+// ── MEMBER TOGGLES ──
+function renderToggles() {
+  const ch = activeCh();
+  if (!ch) return;
+  const wrap = document.getElementById('member-toggles');
+  wrap.innerHTML = ALL_MEMBERS.map(name => {
+    const c = CHARS[name];
+    const on = (ch.activeMembers || ALL_MEMBERS).includes(name);
+    return `<div class="mtoggle ${on ? c.toggleCls : 'off'}" data-member="${name}">
+      <svg width="16" height="16"><use href="#av-${name.toLowerCase()}"/></svg>
+      ${name}
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.mtoggle').forEach(el => {
+    el.addEventListener('click', () => toggleMember(el.dataset.member));
+  });
+}
+
+function toggleMember(name) {
+  const ch = activeCh();
+  if (!ch) return;
+  ch.activeMembers = ch.activeMembers || [...ALL_MEMBERS];
+  const idx = ch.activeMembers.indexOf(name);
+  if (idx >= 0) {
+    if (ch.activeMembers.length <= 1) return; // at least one must be active
+    ch.activeMembers.splice(idx, 1);
+  } else {
+    ch.activeMembers.push(name);
+  }
+  save();
+  renderToggles();
+}
+
+// ── IDEA BOARD ──
+function renderBoard() {
+  const ch = activeCh();
+  const ideas = ch?.ideas || [];
+  const listEl = document.getElementById('ideas-list');
+  const countEl = document.getElementById('board-count');
+  countEl.textContent = ideas.length + ' saved';
+
+  if (ideas.length === 0) {
+    listEl.innerHTML = `<div class="board-empty"><div class="board-empty-icon">📌</div><p>Hover any message and tap <strong>Save</strong> to pin an idea here.</p></div>`;
+    return;
+  }
+  listEl.innerHTML = ideas.map(idea => `
+    <div class="idea-card" style="background:${idea.color}" data-id="${idea.id}">
+      <button class="idea-del" data-id="${idea.id}">✕</button>
+      <div class="idea-text">${esc(idea.text)}</div>
+      <div class="idea-meta">${idea.savedAt}</div>
+    </div>`).join('');
+  listEl.querySelectorAll('.idea-del').forEach(btn => {
+    btn.addEventListener('click', () => deleteIdea(btn.dataset.id));
+  });
+}
+
+function addIdea(text) {
+  const ch = activeCh();
+  if (!ch || !text.trim()) return;
+  if (!ch.ideas) ch.ideas = [];
+  ch.ideas.push({ id: uid(), text: text.trim(), color: nextColor(), savedAt: ts() });
+  save();
+  renderBoard();
+  // Open board if closed
+  if (!boardOpen) toggleBoard();
+}
+
+function deleteIdea(id) {
+  const ch = activeCh();
+  if (!ch) return;
+  ch.ideas = (ch.ideas || []).filter(i => i.id !== id);
+  save();
+  renderBoard();
+}
+
+function toggleBoard() {
+  boardOpen = !boardOpen;
+  const board = document.getElementById('idea-board');
+  board.classList.toggle('collapsed', !boardOpen);
+  document.getElementById('board-toggle-btn').textContent = boardOpen ? '💡 Hide' : '💡 Ideas';
+  save();
+}
+
+// ── MESSAGES ──
+function av(id, size) { return `<svg width="${size}" height="${size}"><use href="#${id}"/></svg>`; }
+
+function pinBtn(text) {
+  const safe = text.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return `<button class="pin-btn" onclick="addIdea('${safe}')">📌 Save</button>`;
+}
+
+function renderAI(msg, grouped) {
+  const c = CHARS[msg.name];
+  const avCol = grouped
+    ? `<div class="av-col spacer"><span class="hover-time">${msg.time}</span></div>`
+    : `<div class="av-col">${av(c.av, 36)}</div>`;
+  const head = grouped ? '' : `<div class="msg-head"><span class="msg-name ${c.cls}">${msg.name}</span><span class="msg-badge ${c.badge}">${c.role}</span><span class="msg-time">${msg.time}</span></div>`;
+  return `<div class="msg-wrap${grouped?'':' first'}">
+    ${avCol}<div class="msg-body">${head}<div class="msg-text">${esc(msg.content)}</div></div>
+    ${pinBtn(msg.content)}
+  </div>`;
+}
+
+function renderUser(msg, grouped) {
+  const avCol = grouped
+    ? `<div class="av-col spacer"><span class="hover-time">${msg.time}</span></div>`
+    : `<div class="av-col">${av('av-you', 36)}</div>`;
+  const head = grouped ? '' : `<div class="msg-head"><span class="msg-name y">You</span><span class="msg-time">${msg.time}</span></div>`;
+  return `<div class="msg-wrap${grouped?'':' first'}">
+    ${avCol}<div class="msg-body">${head}<div class="msg-text you">${esc(msg.content)}</div></div>
+    ${pinBtn(msg.content)}
+  </div>`;
+}
+
+function renderAll(ch) {
+  const el = document.getElementById('messages');
+  if (!ch || !ch.messages.length) { el.innerHTML = ''; return; }
+  let html = '', last = null;
+  for (const m of ch.messages) {
+    const grouped = m.name === last;
+    html += m.name === 'You' ? renderUser(m, grouped) : renderAI(m, grouped);
+    last = m.name;
+  }
+  el.innerHTML = html;
+}
+
+function appendMsg(msg) {
+  const ch = activeCh();
+  if (!ch) return;
+  const last = ch.messages.length > 1 ? ch.messages[ch.messages.length - 2].name : null;
+  const grouped = msg.name === last;
+  const el = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.innerHTML = msg.name === 'You' ? renderUser(msg, grouped) : renderAI(msg, grouped);
+  el.appendChild(div.firstElementChild);
+  scrollBottom();
+}
+
+function scrollBottom() { const el = document.getElementById('messages'); el.scrollTop = el.scrollHeight; }
+
+// ── SWITCH CHANNEL ──
+function switchCh(id) {
+  activeId = id;
+  const ch = activeCh();
+  if (!ch) return;
+  save();
+  renderSidebar();
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('chat').classList.remove('hidden');
+  document.getElementById('ch-name-el').textContent = '#' + ch.slug;
+  renderAll(ch);
+  renderToggles();
+  renderBoard();
+  // Restore board state
+  const board = document.getElementById('idea-board');
+  board.classList.toggle('collapsed', !boardOpen);
+  document.getElementById('board-toggle-btn').textContent = boardOpen ? '💡 Hide' : '💡 Ideas';
+  scrollBottom();
+  document.getElementById('msg-ta').focus();
+}
+
+// ── GROQ API ──
+async function callAI(ch) {
+  const activeMembers = ch.activeMembers || [...ALL_MEMBERS];
+  let activeMembersStr;
+  if (activeMembers.length === 1)      activeMembersStr = `Only ${activeMembers[0]} is active this session. All responses must come from [${activeMembers[0]}].`;
+  else if (activeMembers.length === 2) activeMembersStr = `Only ${activeMembers.join(' and ')} are active. Choose between them based on context.`;
+  else                                  activeMembersStr = 'All three are active. Choose whoever fits best.';
+
+  const system = SYSTEM_TEMPLATE.replace('{ACTIVE_MEMBERS}', activeMembersStr);
+  const apiMsgs = [{ role:'system', content: system }];
+  apiMsgs.push({ role:'user', content:`Problem I'm exploring: "${ch.problem}"\n\nI'm starting with no fixed ideas. Let's begin.` });
+
+  let lastSpeaker = null;
+  for (const m of ch.messages) {
+    const role = m.name === 'You' ? 'user' : 'assistant';
+    const content = m.name === 'You' ? m.content : `[${m.name}]\n${m.content}`;
+    const last = apiMsgs[apiMsgs.length - 1];
+    if (last.role === role) last.content += '\n' + content;
+    else apiMsgs.push({ role, content });
+    if (m.name !== 'You') lastSpeaker = m.name;
+  }
+
+  const lastMsg = apiMsgs[apiMsgs.length - 1];
+  const note = lastSpeaker
+    ? `\n\n[Note: ${lastSpeaker} just responded. Active: ${activeMembers.join(', ')}. Pick whoever is most useful now — not based on turn order.]`
+    : `\n\n[Note: First response. Active: ${activeMembers.join(', ')}.]`;
+  if (lastMsg.role === 'user') lastMsg.content += note;
+  else apiMsgs.push({ role:'user', content: note });
+
+  let res;
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${getKey()}` },
+      body: JSON.stringify({ model:'llama-3.3-70b-versatile', messages: apiMsgs, max_tokens: 350, temperature: 0.9 })
+    });
+  } catch { throw new Error('Network error — check your connection'); }
+
+  if (!res.ok) {
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.error?.message || `Groq error ${res.status}`);
+  }
+  const data = await res.json();
+  const raw = (data.choices?.[0]?.message?.content || '').trim();
+  const match = raw.match(/^\[(Quinn|Vera|Ori)\]\n?([\s\S]+)/);
+  return { name: match ? match[1] : activeMembers[0], content: match ? match[2].trim() : raw };
+}
+
+function showTyping(name) {
+  document.getElementById('typing-av-use').setAttribute('href','#av-'+name.toLowerCase());
+  document.getElementById('typing').classList.remove('hidden');
+  scrollBottom();
+}
+function hideTyping() { document.getElementById('typing').classList.add('hidden'); }
+function showErr(msg) { document.getElementById('err-area').innerHTML = `<div class="err-banner">${msg}</div>`; }
+function clearErr()   { document.getElementById('err-area').innerHTML = ''; }
+
+// ── CREATE CHANNEL ──
+async function createCh(problem) {
+  const id = uid();
+  const ch = { id, slug: slugify(problem)||'new-problem', problem, messages:[], ideas:[], activeMembers:[...ALL_MEMBERS] };
+  channels.unshift(ch);
+  activeId = id;
+  save();
+  renderSidebar();
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('chat').classList.remove('hidden');
+  document.getElementById('ch-name-el').textContent = '#' + ch.slug;
+  document.getElementById('messages').innerHTML = '';
+  renderToggles();
+  renderBoard();
+
+  showTyping('Quinn');
+  try {
+    const { name, content } = await callAI(ch);
+    hideTyping();
+    const msg = { name, content, time: ts() };
+    ch.messages.push(msg);
+    save();
+    appendMsg(msg);
+  } catch(e) {
+    hideTyping();
+    showErr(`<strong>Couldn't connect to Groq.</strong> ${esc(e.message)}`);
+  }
+  document.getElementById('msg-ta').focus();
+}
+
+// ── SEND MESSAGE ──
+async function send() {
+  const ta = document.getElementById('msg-ta');
+  const text = ta.value.trim();
+  const ch = activeCh();
+  if (!text || !ch) return;
+  clearErr();
+  ta.value = '';
+  autosize(ta);
+  document.getElementById('send-btn').disabled = true;
+
+  const userMsg = { name:'You', content:text, time:ts() };
+  ch.messages.push(userMsg);
+  save();
+  appendMsg(userMsg);
+
+  const active = ch.activeMembers || ALL_MEMBERS;
+  showTyping(active[Math.floor(Math.random()*active.length)]);
+
+  try {
+    const { name, content } = await callAI(ch);
+    hideTyping();
+    const aiMsg = { name, content, time:ts() };
+    ch.messages.push(aiMsg);
+    save();
+    appendMsg(aiMsg);
+  } catch(e) {
+    hideTyping();
+    showErr(`<strong>${esc(e.message)}</strong>`);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    ta.focus();
+  }
+}
+
+function autosize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
+
+// ── SETTINGS ──
+function openSettings() {
+  document.getElementById('s-key').value = getKey();
+  document.getElementById('s-err').textContent = '';
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+// ── INIT ──
+function init() {
+  load();
+  if (isReady()) {
+    document.getElementById('app').classList.remove('hidden');
+    if (activeId && activeCh()) switchCh(activeId);
+    // restore board
+    const board = document.getElementById('idea-board');
+    board.classList.toggle('collapsed', !boardOpen);
+    document.getElementById('board-toggle-btn').textContent = boardOpen ? '💡 Hide' : '💡 Ideas';
+  } else {
+    openSettings();
+  }
+
+  // Settings
+  document.getElementById('s-save').addEventListener('click', () => {
+    const key = document.getElementById('s-key').value.trim();
+    if (!key.startsWith('gsk_')) { document.getElementById('s-err').textContent = "Groq keys start with gsk_"; return; }
+    localStorage.setItem('dv_key', key);
+    setReady();
+    closeSettings();
+    document.getElementById('app').classList.remove('hidden');
+  });
+  document.getElementById('gear-btn').addEventListener('click', openSettings);
+  document.getElementById('settings-link').addEventListener('click', openSettings);
+
+  // Problem
+  const probTa = document.getElementById('prob-ta');
+  probTa.addEventListener('input', () => { document.getElementById('open-btn').disabled = !probTa.value.trim(); });
+  document.getElementById('open-btn').addEventListener('click', async () => {
+    const p = probTa.value.trim();
+    if (!p) return;
+    document.getElementById('open-btn').disabled = true;
+    document.getElementById('open-btn').textContent = 'Opening…';
+    probTa.value = '';
+    await createCh(p);
+    document.getElementById('open-btn').textContent = 'Start thinking →';
+  });
+
+  // New problem
+  document.getElementById('new-ch-btn').addEventListener('click', () => {
+    activeId = null;
+    document.getElementById('chat').classList.add('hidden');
+    document.getElementById('setup').classList.remove('hidden');
+    renderSidebar();
+    probTa.focus();
+  });
+
+  // Message input
+  const msgTa = document.getElementById('msg-ta');
+  msgTa.addEventListener('input', () => {
+    autosize(msgTa);
+    document.getElementById('send-btn').disabled = !msgTa.value.trim();
+  });
+  msgTa.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (msgTa.value.trim()) send(); }
+  });
+  document.getElementById('send-btn').addEventListener('click', send);
+
+  // Idea board toggle
+  document.getElementById('board-toggle-btn').addEventListener('click', toggleBoard);
+
+  // Add idea
+  document.getElementById('add-idea-btn').addEventListener('click', () => {
+    const wrap = document.getElementById('idea-add-wrap');
+    wrap.classList.add('visible');
+    document.getElementById('idea-ta').focus();
+    if (!boardOpen) toggleBoard();
+  });
+  document.getElementById('idea-save-btn').addEventListener('click', () => {
+    const text = document.getElementById('idea-ta').value;
+    if (text.trim()) { addIdea(text); document.getElementById('idea-ta').value = ''; }
+    document.getElementById('idea-add-wrap').classList.remove('visible');
+  });
+  document.getElementById('idea-cancel-btn').addEventListener('click', () => {
+    document.getElementById('idea-ta').value = '';
+    document.getElementById('idea-add-wrap').classList.remove('visible');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
